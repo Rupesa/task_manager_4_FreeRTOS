@@ -42,7 +42,7 @@ int TMAN_TICK;      // TASK MANAGER TICK COUNTER
 #define INTERF_WORKLOAD          ( 20)
 
 /* Priorities of the demo application tasks (high numb. -> high prio.) */
-#define TASK_A_PRIORITY	( tskIDLE_PRIORITY + 1 )
+#define TASK_A_PRIORITY	 ( tskIDLE_PRIORITY + 1 )
 #define TASK_B_PRIORITY	 ( tskIDLE_PRIORITY + 1 )
 #define TASK_C_PRIORITY  ( tskIDLE_PRIORITY + 1 )
 #define TASK_D_PRIORITY  ( tskIDLE_PRIORITY + 1 )
@@ -52,11 +52,11 @@ int TMAN_TICK;      // TASK MANAGER TICK COUNTER
 
 /* Task Structure */
 struct TASK {
-   //TickType_t period;
    int period;
    char name;
    int priority;
    int tick_counter;
+   int phase;
    TaskHandle_t handler;
 };
 
@@ -69,11 +69,10 @@ int getTicks(void);
 void task_work(void *pvParam);
 void TMAN_Close(void);
 void TMAN_TaskAdd(char name);
-void TMAN_TaskRegisterAttributes(char name, int period);
+void TMAN_TaskRegisterAttributes(char name, int period, int phase);
 void TMAN_TaskWaitPeriod(void *pvParam);
 void TMAN_TaskStats(void);
 void task_tick_work(void *pvParam);
-
 
 void TMAN_Init(int TMAN_TICK_PERIOD_VALUE)
 {
@@ -92,7 +91,6 @@ void TMAN_Init(int TMAN_TICK_PERIOD_VALUE)
 
     /* Tick Start */
     xTaskCreate( task_tick_work, ( const signed char * const ) "TICK_TASK", configMINIMAL_STACK_SIZE, NULL, TASK_TICK_PRIORITY, NULL );
-    
 
 }
 
@@ -148,33 +146,38 @@ void TMAN_TaskAdd(char name)
         xTaskCreate( task_work, ( const signed char * const ) "task_F", configMINIMAL_STACK_SIZE, (void *)&TASKS[5], TASK_F_PRIORITY, &(TASKS[5].handler) );
         vTaskSuspend((TASKS[5].handler));
     }
-	
 }
 
-void TMAN_TaskRegisterAttributes(char name, int period)
+void TMAN_TaskRegisterAttributes(char name, int period, int phase)
 {
     if (name == 'A'){
         TASKS[0].period = period;
+        TASKS[0].phase = phase;
     }
     
     if (name == 'B'){
         TASKS[1].period = period;
+        TASKS[1].phase = phase;
     }
     
     if (name == 'C'){
         TASKS[2].period = period;
+        TASKS[2].phase = phase;
     }
     
     if (name == 'D'){
         TASKS[3].period = period;
+        TASKS[3].phase = phase;
     }
     
     if (name == 'E'){
         TASKS[4].period = period;
+        TASKS[4].phase = phase;
     }
     
     if (name == 'F'){
         TASKS[5].period = period;
+        TASKS[5].phase = phase;
     }
     
     
@@ -208,15 +211,17 @@ void task_tick_work(void *pvParam)
         int task_to_resume = 0;
         for (task_to_resume = 0; task_to_resume<6; task_to_resume++){
             //printf(" --------- TASK TO RESUME: (%d) \n\r", task_to_resume);
-            if (TASKS[task_to_resume].tick_counter == TASKS[task_to_resume].period){
-                printf(" --------- TASK (%c) TICK_COUNTER: (%d) \n\r",TASKS[task_to_resume].name, TASKS[task_to_resume].tick_counter);
-                vTaskResume((TASKS[task_to_resume].handler));
-                TASKS[task_to_resume].tick_counter =1;
-                break;
+            if (TASKS[task_to_resume].tick_counter == TASKS[task_to_resume].period){  
+                TASKS[task_to_resume].tick_counter =1;    
             }
             else{
                 //printf(" --------- INCREMENT COUNTER \n\r", task_to_resume);
                 TASKS[task_to_resume].tick_counter++;
+            }
+            
+            if (TASKS[task_to_resume].tick_counter == 1 + TASKS[task_to_resume].phase) {
+                printf(" --------- TASK (%c) TICK_COUNTER: (%d) \n\r",TASKS[task_to_resume].name, TASKS[task_to_resume].tick_counter);
+                vTaskResume((TASKS[task_to_resume].handler));   
             }
         }
     }
@@ -275,12 +280,12 @@ int mainSetrLedBlink( void )
     TMAN_TaskAdd('E');
     TMAN_TaskAdd('F');
 
-    TMAN_TaskRegisterAttributes('A', 5);
-    TMAN_TaskRegisterAttributes('B', 2);
-    TMAN_TaskRegisterAttributes('C', 3);
-    TMAN_TaskRegisterAttributes('D', 6);
-    TMAN_TaskRegisterAttributes('E', 7);
-    TMAN_TaskRegisterAttributes('F', 3);
+    TMAN_TaskRegisterAttributes('A', 5, 1);
+    TMAN_TaskRegisterAttributes('B', 2, 1);
+    TMAN_TaskRegisterAttributes('C', 3, 1);
+    TMAN_TaskRegisterAttributes('D', 6, 1);
+    TMAN_TaskRegisterAttributes('E', 7, 1);
+    TMAN_TaskRegisterAttributes('F', 3, 1);
     
     vTaskStartScheduler();
     
