@@ -56,11 +56,11 @@ struct TASK {
    int period;            // task period
    char name;             // task name
    int priority;          // task priority
-   int tick_counter;      // tick counter for periodicity
+   int activations;       // number of activations
    int phase;             // task phase
    int deadline;          // task deadline
    int deadline_misses;   // number of deadline misses
-   int executed;          // task executed on current period
+   int ready;          // task executed on current period
    int precedence[6];      // task precedence chain
    int goingToExecute;    // flag to signal that task is going to execute this tick
    TaskHandle_t handler;  // task Handler
@@ -116,60 +116,60 @@ void TMAN_TaskAdd(char name)
     if (name == 'A'){
         printf("CREATING A \n\r");
         TASKS[0].name = 'A';
-        TASKS[0].tick_counter = 1;
         TASKS[0].deadline_misses = 0;
-        TASKS[0].executed = 0;
+        TASKS[0].ready = 0;
         TASKS[0].goingToExecute = 0;
+        TASKS[0].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_A", configMINIMAL_STACK_SIZE, (void *)&TASKS[0], TASK_A_PRIORITY, &(TASKS[0].handler));
         vTaskSuspend((TASKS[0].handler));
     }
     if (name == 'B'){
         printf("CREATING B \n\r");
         TASKS[1].name = 'B';
-        TASKS[1].tick_counter = 1;
         TASKS[1].deadline_misses = 0;
-        TASKS[1].executed = 0;
+        TASKS[1].ready = 0;
         TASKS[1].goingToExecute = 0;
+        TASKS[1].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_B", configMINIMAL_STACK_SIZE, (void *)&TASKS[1], TASK_B_PRIORITY, &(TASKS[1].handler) );
         vTaskSuspend((TASKS[1].handler));
     }
     if (name == 'C'){
         printf("CREATING C \n\r");
         TASKS[2].name = 'C';
-        TASKS[2].tick_counter = 1;
         TASKS[2].deadline_misses = 0;
-        TASKS[2].executed = 0;
+        TASKS[2].ready = 0;
         TASKS[2].goingToExecute = 0;
+        TASKS[2].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_C", configMINIMAL_STACK_SIZE, (void *)&TASKS[2], TASK_C_PRIORITY, &(TASKS[2].handler) );
         vTaskSuspend((TASKS[2].handler));
     }
     if (name == 'D'){
         printf("CREATING D \n\r");
         TASKS[3].name = 'D';
-        TASKS[3].tick_counter = 1;
         TASKS[3].deadline_misses = 0;
-        TASKS[3].executed = 0;
+        TASKS[3].ready = 0;
         TASKS[3].goingToExecute = 0;
+        TASKS[3].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_D", configMINIMAL_STACK_SIZE, (void *)&TASKS[3], TASK_D_PRIORITY, &(TASKS[3].handler) );
         vTaskSuspend((TASKS[3].handler));
     }
     if (name == 'E'){
         printf("CREATING E \n\r");
         TASKS[4].name = 'E';
-        TASKS[4].tick_counter = 1;
         TASKS[4].deadline_misses = 0;
-        TASKS[4].executed = 0;
+        TASKS[4].ready = 0;
         TASKS[4].goingToExecute = 0;
+        TASKS[4].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_E", configMINIMAL_STACK_SIZE, (void *)&TASKS[4], TASK_E_PRIORITY, &(TASKS[4].handler) );
         vTaskSuspend((TASKS[4].handler));
     }
     if (name == 'F'){
         printf("CREATING F \n\r");
         TASKS[5].name = 'F';
-        TASKS[5].tick_counter = 1;
         TASKS[5].deadline_misses = 0;
-        TASKS[5].executed = 0;
+        TASKS[5].ready = 0;
         TASKS[5].goingToExecute = 0;
+        TASKS[5].activations = 0;
         xTaskCreate( task_work, ( const signed char * const ) "task_F", configMINIMAL_STACK_SIZE, (void *)&TASKS[5], TASK_F_PRIORITY, &(TASKS[5].handler) );
         vTaskSuspend((TASKS[5].handler));
     }
@@ -257,7 +257,12 @@ void TMAN_TaskWaitPeriod(void *pvParam)
 
 void TMAN_TaskStats(void)
 {
-
+    for(int i = 0; i<6; i++){
+        
+        printf("TASK (%c) NUMBER OF ACTIVATIONS = (%d)\n\r", TASKS[i].name, TASKS[i].activations);
+        printf("TASK (%c) DEADLINE MISSES = (%d)\n\r", TASKS[i].name, TASKS[i].deadline_misses);
+        
+    }
 }
 
 void task_tick_work(void *pvParam)
@@ -269,49 +274,41 @@ void task_tick_work(void *pvParam)
     
     for(;;){
         vTaskDelayUntil( &xLastWakeTime, xFrequency );
+        TMAN_TaskStats();
         
         TMAN_TICK = TMAN_TICK+1;
-        printf("RTOS_TICK = (%d)\n\r", xLastWakeTime);
+        //printf("RTOS_TICK = (%d)\n\r", xLastWakeTime);
         printf("TMAN_TICK = (%d)\n\r", TMAN_TICK);
         
         // ACORAR TAREFA
         int task_to_resume = 0;
         for (task_to_resume = 0; task_to_resume<TMAN_N_TASKS; task_to_resume++){
             //printf(" --------- TASK TO RESUME: (%d) \n\r", task_to_resume);
-            if (TASKS[task_to_resume].tick_counter == TASKS[task_to_resume].period){  
-                TASKS[task_to_resume].tick_counter =1;  
-                TASKS[task_to_resume].executed += 1;
-            }
-            
-            else{
-                //printf(" --------- INCREMENT COUNTER \n\r", task_to_resume);
-                TASKS[task_to_resume].tick_counter++;
-            }
-            
-            if ((TASKS[task_to_resume].tick_counter >= 1 + TASKS[task_to_resume].phase) &&  (TASKS[task_to_resume].executed > 0)) {
-                TASKS[task_to_resume].goingToExecute = 1;
+            if ((TMAN_TICK % TASKS[task_to_resume].period) == TASKS[task_to_resume].phase) { 
+                TASKS[task_to_resume].ready += 1;
+                TASKS[task_to_resume].activations += 1;
             }
         }
         
         for (int task = 0; task < TMAN_N_TASKS; task++){
-            int executable = 0;
-            if (TASKS[task].goingToExecute == 1) {
+            int dont_executable = 0;
+            if (TASKS[task].ready > 0) {
                     for (int i = 0; i<6; i++){
+                        //printf(" -- precedencia id: (%d) \n\r", TASKS[task].precedence[i]);
                         if (TASKS[task].precedence[i]!= -1){
-                            if (TASKS[TASKS[task].precedence[i]].goingToExecute != 0){
-                                printf(" --------- INCREMENT EXECUTABLE \n\r");
-                                executable++;
+                            //printf(" --------- Precedence exists \n\r");
+                            if (TASKS[TASKS[task].precedence[i]].ready > 0){
+                                //printf(" --------- INCREMENT EXECUTABLE \n\r");
+                                dont_executable++;
                             }
                         }
                     }
-                    if (executable == 0){
-                        printf(" --------- TASK (%c) TICK_COUNTER: (%d) \n\r",TASKS[task].name, TASKS[task].tick_counter);
+                    if (dont_executable == 0){
                         vTaskResume((TASKS[task].handler));
-                        TASKS[task].goingToExecute = 0;
                     }
             }
             
-            if ((TASKS[task].tick_counter == 1 + TASKS[task].deadline) &&  (TASKS[task].executed > 0)){
+            if (((TMAN_TICK % TASKS[task_to_resume].period) == TASKS[task].deadline) &&  (TASKS[task].ready > 0)){
                 printf(" --------- TASK (%c) DEADLINE MISS! \n\r", TASKS[task].name);
                 TASKS[task].deadline_misses += 1;
             }
@@ -327,19 +324,19 @@ void task_work(void *pvParam)
     
     int i;
     int j;
-    int IMAXCOUNT = 99999999;
+    int IMAXCOUNT = 999999;
     int JMAXCOUNT = 99999999;
     
     for(;;){
         //TMAN_TaskWaitPeriod(args ?); // Add args if needed
         printf("TASK (%c), TMAN_TICK = (%d) \n\r", working_task->name, TMAN_TICK);
                 
-        /*for(i=0; i<IMAXCOUNT; i++){
-            for(j=0; j<JMAXCOUNT; j++){
+        for(i=0; i<IMAXCOUNT; i++){
+            /*for(j=0; j<JMAXCOUNT; j++){
                 
-            }
-        }*/
-        working_task->executed -= 1;
+            }*/
+        }
+        working_task->ready -= 1;
         TMAN_TaskWaitPeriod((void *)&working_task);
     }
 }
@@ -357,7 +354,7 @@ int mainSetrLedBlink( void )
 
     __XC_UART = 1; /* Redirect stdin/stdout/stderr to UART1*/
     
-    TMAN_Init(100, 2);
+    TMAN_Init(500, 6);
     
     printf("AFTER INIT!\n\r");
 
@@ -369,13 +366,13 @@ int mainSetrLedBlink( void )
     TMAN_TaskAdd('F');
     
     int a_precedences[] = {-1,-1,-1,-1,-1,-1}; 
-    int b_precedences[] = {0,-1,-1,-1,-1,-1}; 
+    int b_precedences[] = {-1,-1,-1,-1,-1,-1}; 
     int c_precedences[] = {-1,-1,-1,-1,-1,-1}; 
     int d_precedences[] = {-1,-1,-1,-1,-1,-1};
     int e_precedences[] = {-1,-1,-1,-1,-1,-1};
     int f_precedences[] = {-1,-1,-1,-1,-1,-1}; 
 
-    TMAN_TaskRegisterAttributes('A', 5, 1, 10, a_precedences);
+    TMAN_TaskRegisterAttributes('A', 5, 2, 10, a_precedences);
     TMAN_TaskRegisterAttributes('B', 2, 1, 10, b_precedences);
     TMAN_TaskRegisterAttributes('C', 3, 1, 10, c_precedences);
     TMAN_TaskRegisterAttributes('D', 6, 1, 10, d_precedences);
