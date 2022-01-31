@@ -1,5 +1,6 @@
 /*
- * Paulo Pedreiras, Sept/2021
+ * Rodrigo Santos , nº mec 89180
+ * Rui Santos, nº mec 89293
  *
  * FREERTOS demo for ChipKit MAX32 board
  * - Creates two periodic tasks
@@ -32,10 +33,8 @@
 
 /* Set the tasks' period (in system ticks) */
 
-#define TASK_TICK_PERIOD_MS 	( 100 / portTICK_RATE_MS )
-
-int TASK_TICK_PERIOD;
-int TMAN_TICK;      // TASK MANAGER TICK COUNTER
+int TASK_TICK_PERIOD;// TICK TASK PERIOD
+int TMAN_TICK;       // TASK MANAGER TICK COUNTER
 int TMAN_N_TASKS;    // NUMBER OF TMAN TASKS
 
 /* Control the load task execution time (# of iterations)*/
@@ -71,7 +70,6 @@ struct TASK TASKS[6];
 /*
  * Prototypes and tasks
  */
-int getTicks(void);
 void task_work(void *pvParam);
 void TMAN_Close(void);
 void TMAN_TaskAdd(char name);
@@ -79,6 +77,7 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
 void TMAN_TaskWaitPeriod(void *pvParam);
 void TMAN_TaskStats(void);
 void task_tick_work(void *pvParam);
+void task_manager(void);
 
 void TMAN_Init(int TMAN_TICK_PERIOD_VALUE, int N_TASKS)
 {
@@ -111,10 +110,8 @@ void TMAN_Close(void)
 
 void TMAN_TaskAdd(char name)
 {
-    printf("TASK ADD \n\r");
     /* Create the tasks defined within this file. */
     if (name == 'A'){
-        printf("CREATING A \n\r");
         TASKS[0].name = 'A';
         TASKS[0].deadline_misses = 0;
         TASKS[0].ready = 0;
@@ -124,7 +121,6 @@ void TMAN_TaskAdd(char name)
         vTaskSuspend((TASKS[0].handler));
     }
     if (name == 'B'){
-        printf("CREATING B \n\r");
         TASKS[1].name = 'B';
         TASKS[1].deadline_misses = 0;
         TASKS[1].ready = 0;
@@ -134,7 +130,6 @@ void TMAN_TaskAdd(char name)
         vTaskSuspend((TASKS[1].handler));
     }
     if (name == 'C'){
-        printf("CREATING C \n\r");
         TASKS[2].name = 'C';
         TASKS[2].deadline_misses = 0;
         TASKS[2].ready = 0;
@@ -144,7 +139,6 @@ void TMAN_TaskAdd(char name)
         vTaskSuspend((TASKS[2].handler));
     }
     if (name == 'D'){
-        printf("CREATING D \n\r");
         TASKS[3].name = 'D';
         TASKS[3].deadline_misses = 0;
         TASKS[3].ready = 0;
@@ -154,7 +148,6 @@ void TMAN_TaskAdd(char name)
         vTaskSuspend((TASKS[3].handler));
     }
     if (name == 'E'){
-        printf("CREATING E \n\r");
         TASKS[4].name = 'E';
         TASKS[4].deadline_misses = 0;
         TASKS[4].ready = 0;
@@ -164,7 +157,6 @@ void TMAN_TaskAdd(char name)
         vTaskSuspend((TASKS[4].handler));
     }
     if (name == 'F'){
-        printf("CREATING F \n\r");
         TASKS[5].name = 'F';
         TASKS[5].deadline_misses = 0;
         TASKS[5].ready = 0;
@@ -181,11 +173,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[0].period = period;
         TASKS[0].phase = phase;
         TASKS[0].deadline = deadline;
-        //memcpy(&TASKS[0].precedence, &precedence_constraints, sizeof TASKS[0].precedence );
-        printf("Array A:");
         for (int i = 0; i<6; i++){
             TASKS[0].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[0].precedence[i]);
         }
     }
     
@@ -193,11 +182,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[1].period = period;
         TASKS[1].phase = phase;
         TASKS[1].deadline = deadline;
-        //memcpy(&TASKS[1].precedence, &precedence_constraints, sizeof TASKS[1].precedence );
-        printf("Array B:");
         for (int i = 0; i<6; i++){
             TASKS[1].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[1].precedence[i]);
         }
     }
     
@@ -205,11 +191,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[2].period = period;
         TASKS[2].phase = phase;
         TASKS[2].deadline = deadline;
-        //memcpy(&TASKS[2].precedence, &precedence_constraints, sizeof TASKS[2].precedence );
-        printf("Array C:");
         for (int i = 0; i<6; i++){
             TASKS[2].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[2].precedence[i]);
         }
     }
     
@@ -217,11 +200,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[3].period = period;
         TASKS[3].phase = phase;
         TASKS[3].deadline = deadline;
-        //memcpy(&TASKS[3].precedence, &precedence_constraints, sizeof TASKS[3].precedence );
-        printf("Array D:");
         for (int i = 0; i<6; i++){
             TASKS[3].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[3].precedence[i]);
         }
     }
     
@@ -229,11 +209,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[4].period = period;
         TASKS[4].phase = phase;
         TASKS[4].deadline = deadline;
-        //memcpy(&TASKS[4].precedence, &precedence_constraints, sizeof TASKS[4].precedence );
-        printf("Array E:");
         for (int i = 0; i<6; i++){
             TASKS[4].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[4].precedence[i]);
         }
     }
     
@@ -241,11 +218,8 @@ void TMAN_TaskRegisterAttributes(char name, int period, int phase, int deadline,
         TASKS[5].period = period;
         TASKS[5].phase = phase;
         TASKS[5].deadline = deadline;
-        //memcpy(&TASKS[5].precedence, &precedence_constraints, sizeof TASKS[5].precedence );
-        printf("Array F:");
         for (int i = 0; i<6; i++){
             TASKS[5].precedence[i] = precedence_constraints[i];
-            printf(" (%d) ", TASKS[5].precedence[i]);
         }
     } 
 }
@@ -265,23 +239,9 @@ void TMAN_TaskStats(void)
     }
 }
 
-void task_tick_work(void *pvParam)
-{
-    printf("TASK TICK WORK\n\r");
-    TickType_t xLastWakeTime;
-    const TickType_t xFrequency = TASK_TICK_PERIOD;
-    xLastWakeTime = xTaskGetTickCount();
+void task_manager(void){
     
-    for(;;){
-        vTaskDelayUntil( &xLastWakeTime, xFrequency );
-        TMAN_TaskStats();
-        
-        TMAN_TICK = TMAN_TICK+1;
-        //printf("RTOS_TICK = (%d)\n\r", xLastWakeTime);
-        printf("TMAN_TICK = (%d)\n\r", TMAN_TICK);
-        
-        // ACORAR TAREFA
-        int task_to_resume = 0;
+    int task_to_resume = 0;
         for (task_to_resume = 0; task_to_resume<TMAN_N_TASKS; task_to_resume++){
             //printf(" --------- TASK TO RESUME: (%d) \n\r", task_to_resume);
             if ((TMAN_TICK % TASKS[task_to_resume].period) == TASKS[task_to_resume].phase) { 
@@ -307,12 +267,34 @@ void task_tick_work(void *pvParam)
                         vTaskResume((TASKS[task].handler));
                     }
             }
-            
-            if (((TMAN_TICK % TASKS[task_to_resume].period) == TASKS[task].deadline) &&  (TASKS[task].ready > 0)){
+            /*
+            printf("Resto de divisao: %d\n\r", (TMAN_TICK % TASKS[task_to_resume].period))
+            printf("Deadline -1 (1): %d\n\r", (TASKS[task].deadline - 1))
+            printf("Resto de divisao: %d\n\r", (TMAN_TICK % TASKS[task_to_resume].period)*/
+            if (((TMAN_TICK % TASKS[task].period) == (TASKS[task].deadline - 1)) &&  (TASKS[task].ready > 0)){
                 printf(" --------- TASK (%c) DEADLINE MISS! \n\r", TASKS[task].name);
                 TASKS[task].deadline_misses += 1;
             }
         }
+    
+}
+
+void task_tick_work(void *pvParam)
+{
+    
+    TickType_t xLastWakeTime;
+    const TickType_t xFrequency = TASK_TICK_PERIOD;
+    xLastWakeTime = xTaskGetTickCount();
+    
+    for(;;){
+        vTaskDelayUntil( &xLastWakeTime, xFrequency );
+        TMAN_TaskStats();
+        
+        TMAN_TICK = TMAN_TICK+1;
+        printf("TMAN_TICK = %d\n\r", TMAN_TICK);
+        
+        // TASK HANDLING
+        task_manager();
     }
 }
 
@@ -328,8 +310,7 @@ void task_work(void *pvParam)
     int JMAXCOUNT = 99999999;
     
     for(;;){
-        //TMAN_TaskWaitPeriod(args ?); // Add args if needed
-        printf("TASK (%c), TMAN_TICK = (%d) \n\r", working_task->name, TMAN_TICK);
+        printf("%c, %d \n\r", working_task->name, TMAN_TICK);
                 
         for(i=0; i<IMAXCOUNT; i++){
             /*for(j=0; j<JMAXCOUNT; j++){
@@ -355,8 +336,6 @@ int mainSetrLedBlink( void )
     __XC_UART = 1; /* Redirect stdin/stdout/stderr to UART1*/
     
     TMAN_Init(500, 6);
-    
-    printf("AFTER INIT!\n\r");
 
     TMAN_TaskAdd('A');
     TMAN_TaskAdd('B');
@@ -366,18 +345,18 @@ int mainSetrLedBlink( void )
     TMAN_TaskAdd('F');
     
     int a_precedences[] = {-1,-1,-1,-1,-1,-1}; 
-    int b_precedences[] = {-1,-1,-1,-1,-1,-1}; 
-    int c_precedences[] = {-1,-1,-1,-1,-1,-1}; 
+    int b_precedences[] = {2,-1,-1,-1,-1,-1}; 
+    int c_precedences[] = {5,-1,-1,-1,-1,-1}; 
     int d_precedences[] = {-1,-1,-1,-1,-1,-1};
     int e_precedences[] = {-1,-1,-1,-1,-1,-1};
     int f_precedences[] = {-1,-1,-1,-1,-1,-1}; 
 
-    TMAN_TaskRegisterAttributes('A', 5, 2, 10, a_precedences);
-    TMAN_TaskRegisterAttributes('B', 2, 1, 10, b_precedences);
-    TMAN_TaskRegisterAttributes('C', 3, 1, 10, c_precedences);
-    TMAN_TaskRegisterAttributes('D', 6, 1, 10, d_precedences);
-    TMAN_TaskRegisterAttributes('E', 7, 1, 10, e_precedences);
-    TMAN_TaskRegisterAttributes('F', 3, 1, 10, f_precedences);
+    TMAN_TaskRegisterAttributes('A', 5, 2, 5, a_precedences);
+    TMAN_TaskRegisterAttributes('B', 2, 0, 2, b_precedences);
+    TMAN_TaskRegisterAttributes('C', 3, 0, 3, c_precedences);
+    TMAN_TaskRegisterAttributes('D', 6, 1, 6, d_precedences);
+    TMAN_TaskRegisterAttributes('E', 7, 1, 7, e_precedences);
+    TMAN_TaskRegisterAttributes('F', 3, 0, 2, f_precedences);
     
     vTaskStartScheduler();
     
