@@ -201,7 +201,7 @@ void task_manager(void){
                     }
             }
             
-            if (((TMAN_TICK % TASKS[task].period) == (TASKS[task].deadline)) &&  (TASKS[task].ready > 0)){
+            if (((TMAN_TICK % TASKS[task].period) == (TASKS[task].deadline) + TASKS[task].phase) &&  (TASKS[task].ready > 0)){
                 printf(" --------- TASK (%c) DEADLINE MISS! \n\r", TASKS[task].name);
                 TASKS[task].deadline_misses += 1;
             }
@@ -221,7 +221,7 @@ void task_tick_work(void *pvParam)
         TMAN_TaskStats();
         
         TMAN_TICK = TMAN_TICK+1;
-        printf("TMAN_TICK = %d\n\r", TMAN_TICK);
+        //printf("TMAN_TICK = %d\n\r", TMAN_TICK);
         
         // TASK HANDLING
         task_manager();
@@ -277,14 +277,14 @@ int mainSetrLedBlink( void )
     TMAN_TaskAdd('F');
     
     int a_precedences[] = {-1,-1,-1,-1,-1}; 
-    int b_precedences[] = {2,-1,-1,-1,-1}; 
-    int c_precedences[] = {5,-1,-1,-1,-1}; 
+    int b_precedences[] = {-1,-1,-1,-1,-1}; 
+    int c_precedences[] = {-1,-1,-1,-1,-1}; 
     int d_precedences[] = {-1,-1,-1,-1,-1};
     int e_precedences[] = {-1,-1,-1,-1,-1};
     int f_precedences[] = {-1,-1,-1,-1,-1}; 
 
     TMAN_TaskRegisterAttributes('A', tskIDLE_PRIORITY + 0, 5, 2, 5, a_precedences);
-    TMAN_TaskRegisterAttributes('B', tskIDLE_PRIORITY + 1, 10, 0, 2, b_precedences);
+    TMAN_TaskRegisterAttributes('B', tskIDLE_PRIORITY + 1, 10, 1, 2, b_precedences);
     TMAN_TaskRegisterAttributes('C', tskIDLE_PRIORITY + 2, 3, 0, 3, c_precedences);
     TMAN_TaskRegisterAttributes('D', tskIDLE_PRIORITY + 3, 6, 1, 6, d_precedences);
     TMAN_TaskRegisterAttributes('E', tskIDLE_PRIORITY + 3, 7, 1, 7, e_precedences);
