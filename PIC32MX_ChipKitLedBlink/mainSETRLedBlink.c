@@ -33,9 +33,10 @@
 
 /* Set the tasks' period (in system ticks) */
 
-int TASK_TICK_PERIOD;// TICK TASK PERIOD
-int TMAN_TICK;       // TASK MANAGER TICK COUNTER
-int TMAN_N_TASKS;    // NUMBER OF TMAN TASKS
+int TASK_TICK_PERIOD; // TICK TASK PERIOD
+int TMAN_TICK;        // TMAN TICK COUNTER
+int TMAN_N_TASKS;     // NUMBER OF TMAN TASKS
+TaskHandle_t TICK_HANDLER; // TASK TICK HANDLER
 
 /* Control the load task execution time (# of iterations)*/
 /* Each unit corresponds to approx 50 ms*/
@@ -97,7 +98,7 @@ void TMAN_Init(int TMAN_TICK_PERIOD_VALUE, int N_TASKS)
     malloc(sizeof TASKS);
 
     /* Tick Start */
-    xTaskCreate( task_tick_work, ( const signed char * const ) "TICK_TASK", configMINIMAL_STACK_SIZE, NULL, TASK_TICK_PRIORITY, NULL );
+    xTaskCreate( task_tick_work, ( const signed char * const ) "TICK_TASK", configMINIMAL_STACK_SIZE, NULL, TASK_TICK_PRIORITY, &TICK_HANDLER );
 
 }
 
@@ -123,7 +124,15 @@ void taskModifyPhase(char name, int phase){
 
 void TMAN_Close(void)
 {
-    // exit
+    /* DELETE TASKS AND EXIT */
+    
+    for(int i = 0; i < TMAN_N_TASKS; i++){
+        vTaskDelete(TASKS[i].handler);
+    }
+    
+    vTaskDelete(TICK_HANDLER);
+    vTaskEndScheduler();
+    
     return 0;
 }
 
@@ -218,7 +227,7 @@ void task_tick_work(void *pvParam)
     
     for(;;){
         vTaskDelayUntil( &xLastWakeTime, xFrequency );
-        TMAN_TaskStats();
+        //TMAN_TaskStats();
         
         TMAN_TICK = TMAN_TICK+1;
         //printf("TMAN_TICK = %d\n\r", TMAN_TICK);
@@ -267,7 +276,7 @@ int mainSetrLedBlink( void )
 
     __XC_UART = 1; /* Redirect stdin/stdout/stderr to UART1*/
     
-    TMAN_Init(500, 6);
+    TMAN_Init(300, 6);
 
     TMAN_TaskAdd('A');
     TMAN_TaskAdd('B');
@@ -276,19 +285,19 @@ int mainSetrLedBlink( void )
     TMAN_TaskAdd('E');
     TMAN_TaskAdd('F');
     
-    int a_precedences[] = {-1,-1,-1,-1,-1}; 
+    int a_precedences[] = {5,-1,-1,-1,-1}; 
     int b_precedences[] = {-1,-1,-1,-1,-1}; 
     int c_precedences[] = {-1,-1,-1,-1,-1}; 
     int d_precedences[] = {-1,-1,-1,-1,-1};
     int e_precedences[] = {-1,-1,-1,-1,-1};
     int f_precedences[] = {-1,-1,-1,-1,-1}; 
 
-    TMAN_TaskRegisterAttributes('A', tskIDLE_PRIORITY + 0, 5, 2, 5, a_precedences);
-    TMAN_TaskRegisterAttributes('B', tskIDLE_PRIORITY + 1, 10, 1, 2, b_precedences);
+    TMAN_TaskRegisterAttributes('A', tskIDLE_PRIORITY + 3, 1, 0, 1, a_precedences);
+    TMAN_TaskRegisterAttributes('B', tskIDLE_PRIORITY + 3, 1, 0, 1, b_precedences);
     TMAN_TaskRegisterAttributes('C', tskIDLE_PRIORITY + 2, 3, 0, 3, c_precedences);
-    TMAN_TaskRegisterAttributes('D', tskIDLE_PRIORITY + 3, 6, 1, 6, d_precedences);
-    TMAN_TaskRegisterAttributes('E', tskIDLE_PRIORITY + 3, 7, 1, 7, e_precedences);
-    TMAN_TaskRegisterAttributes('F', tskIDLE_PRIORITY + 3, 3, 0, 2, f_precedences);
+    TMAN_TaskRegisterAttributes('D', tskIDLE_PRIORITY + 2, 3, 1, 3, d_precedences);
+    TMAN_TaskRegisterAttributes('E', tskIDLE_PRIORITY + 1, 5, 0, 5, e_precedences);
+    TMAN_TaskRegisterAttributes('F', tskIDLE_PRIORITY + 1, 5, 2, 5, f_precedences);
     
     vTaskStartScheduler();
     
