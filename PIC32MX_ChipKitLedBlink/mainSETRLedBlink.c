@@ -227,7 +227,7 @@ void task_tick_work(void *pvParam)
     
     for(;;){
         vTaskDelayUntil( &xLastWakeTime, xFrequency );
-        //TMAN_TaskStats();
+        TMAN_TaskStats();
         
         TMAN_TICK = TMAN_TICK+1;
         //printf("TMAN_TICK = %d\n\r", TMAN_TICK);
@@ -292,7 +292,7 @@ int mainSetrLedBlink( void )
     int e_precedences[] = {-1,-1,-1,-1,-1};
     int f_precedences[] = {-1,-1,-1,-1,-1}; 
 
-    TMAN_TaskRegisterAttributes('A', tskIDLE_PRIORITY + 3, 1, 0, 1, a_precedences);
+    TMAN_TaskRegisterAttributes('A', tskIDLE_PRIORITY + 3, 2, 0, 2, a_precedences);
     TMAN_TaskRegisterAttributes('B', tskIDLE_PRIORITY + 3, 1, 0, 1, b_precedences);
     TMAN_TaskRegisterAttributes('C', tskIDLE_PRIORITY + 2, 3, 0, 3, c_precedences);
     TMAN_TaskRegisterAttributes('D', tskIDLE_PRIORITY + 2, 3, 1, 3, d_precedences);
